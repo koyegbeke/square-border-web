@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#f2f2f7" />
+  <title>Square Border</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #f2f2f7;
+      --card:      #ffffff;
+      --accent:    #007aff;
+      --accent-bg: rgba(0, 122, 255, 0.08);
+      --border:    #c6c6c8;
+      --text:      #000000;
+      --secondary: #6c6c70;
+      --radius:    14px;
+      --green:     #34c759;
+      --red:       #ff3b30;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:        #1c1c1e;
+        --card:      #2c2c2e;
+        --border:    #3a3a3c;
+        --text:      #ffffff;
+        --secondary: #8e8e93;
+        --accent-bg: rgba(10, 132, 255, 0.12);
+        --accent:    #0a84ff;
+        --green:     #30d158;
+        --red:       #ff453a;
+      }
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      padding: 16px;
+      padding-bottom: 32px;
+    }
+
+    .app {
+      max-width: 480px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      padding: 8px 4px 0;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    /* ── Controls ── */
+    .controls {
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .toggle-row label {
+      font-size: 1rem;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    /* iOS-style toggle */
+    .switch { position: relative; display: inline-block; width: 51px; height: 31px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider-track {
+      position: absolute; inset: 0;
+      background: var(--border);
+      border-radius: 31px;
+      transition: background 0.2s;
+      cursor: pointer;
+    }
+    .slider-track::before {
+      content: "";
+      position: absolute;
+      width: 27px; height: 27px;
+      left: 2px; top: 2px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+    }
+    .switch input:checked + .slider-track { background: var(--accent); }
+    .switch input:checked + .slider-track::before { transform: translateX(20px); }
+
+    .padding-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .padding-row input[type=range] {
+      flex: 1;
+      -webkit-appearance: none;
+      height: 4px;
+      border-radius: 4px;
+      background: var(--border);
+      outline: none;
+      cursor: pointer;
+    }
+    .padding-row input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: #fff;
+      border: none;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+      cursor: pointer;
+    }
+
+    .padding-val {
+      font-size: 0.875rem;
+      color: var(--secondary);
+      font-variant-numeric: tabular-nums;
+      min-width: 42px;
+      text-align: right;
+    }
+
+    /* ── Drop zone ── */
+    .drop-zone {
+      margin: 0 12px 12px;
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .drop-zone.drag-over {
+      border-color: var(--accent);
+      background: var(--accent-bg);
+    }
+
+    .drop-zone svg {
+      color: var(--secondary);
+      transition: color 0.15s;
+    }
+    .drop-zone.drag-over svg { color: var(--accent); }
+
+    .drop-zone p {
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--text);
+    }
+    .drop-zone.drag-over p { color: var(--accent); }
+
+    .drop-zone small {
+      font-size: 0.8rem;
+      color: var(--secondary);
+    }
+
+    .pick-btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 12px 24px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      transition: opacity 0.15s;
+    }
+    .pick-btn:active { opacity: 0.75; }
+    .pick-btn:disabled { opacity: 0.4; cursor: default; }
+
+    #file-input { display: none; }
+
+    /* ── Progress ── */
+    .progress-card {
+      padding: 32px 16px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .progress-bar-wrap {
+      width: 100%;
+      background: var(--border);
+      border-radius: 4px;
+      height: 4px;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 4px;
+      transition: width 0.2s;
+      width: 0%;
+    }
+
+    .progress-card p { font-size: 0.9rem; color: var(--secondary); }
+
+    /* ── Results ── */
+    .results-header {
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .results-header span { font-size: 1rem; font-weight: 600; }
+
+    .clear-btn {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-size: 0.9rem;
+      cursor: pointer;
+      padding: 2px 0;
+    }
+
+    .result-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      text-decoration: none;
+      color: inherit;
+    }
+    .result-row:last-child { border-bottom: none; }
+
+    .result-icon { flex-shrink: 0; font-size: 1.2rem; }
+    .result-icon.ok { color: var(--green); }
+    .result-icon.err { color: var(--red); }
+
+    .result-info { flex: 1; min-width: 0; }
+    .result-info .name {
+      font-size: 0.875rem;
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .result-info .msg {
+      font-size: 0.75rem;
+      color: var(--secondary);
+      margin-top: 2px;
+    }
+
+    .dl-btn {
+      background: var(--accent-bg);
+      color: var(--accent);
+      border: none;
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      flex-shrink: 0;
+      text-decoration: none;
+      display: inline-block;
+    }
+    a.dl-btn { line-height: 1.4; }
+
+    .more-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      border: none;
+      background: none;
+      color: var(--accent);
+      font-size: 0.95rem;
+      font-weight: 500;
+      padding: 14px 16px;
+      cursor: pointer;
+    }
+
+    /* ── iOS share hint ── */
+    .ios-hint {
+      font-size: 0.75rem;
+      color: var(--secondary);
+      text-align: center;
+      padding: 0 16px 12px;
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+<div class="app">
+  <h1>Square Border</h1>
+
+  <!-- Controls card -->
+  <div class="card">
+    <div class="controls">
+      <div class="toggle-row">
+        <label for="pad-toggle">Pad all sides</label>
+        <label class="switch">
+          <input type="checkbox" id="pad-toggle" />
+          <span class="slider-track"></span>
+        </label>
+      </div>
+      <div class="padding-row" id="slider-row" style="display:none">
+        <input type="range" id="pad-slider" min="1" max="30" step="0.5" value="2.5" />
+        <span class="padding-val" id="pad-val">2.5%</span>
+      </div>
+    </div>
+
+    <!-- Drop zone -->
+    <div class="drop-zone" id="drop-zone">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="3"/>
+        <circle cx="8.5" cy="8.5" r="1.5"/>
+        <polyline points="21 15 16 10 5 21"/>
+      </svg>
+      <p id="drop-text">Drop photos here</p>
+      <small id="drop-sub">or use the button below</small>
+      <button class="pick-btn" id="pick-btn">Select Photos</button>
+      <input type="file" id="file-input" accept="image/jpeg,image/png,image/heic,image/heif,image/tiff,image/webp" multiple />
+    </div>
+  </div>
+
+  <!-- Processing card (hidden until active) -->
+  <div class="card hidden" id="processing-card">
+    <div class="progress-card">
+      <div class="spinner"></div>
+      <div class="progress-bar-wrap" style="width:100%">
+        <div class="progress-bar" id="progress-bar"></div>
+      </div>
+      <p id="progress-text">Processing…</p>
+    </div>
+  </div>
+
+  <!-- Results card (hidden until results exist) -->
+  <div class="card hidden" id="results-card">
+    <div class="results-header">
+      <span id="results-summary"></span>
+      <button class="clear-btn" id="clear-btn">Clear</button>
+    </div>
+    <div id="results-list"></div>
+    <button class="more-btn" id="more-btn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      Select More Photos
+    </button>
+  </div>
+
+  <p class="ios-hint hidden" id="ios-hint">On iPhone: tap and hold a download button, then choose "Download Linked File"</p>
+</div>
+
+<script>
+  // ── State ──────────────────────────────────────────────────────────────────
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  let results = [];
+
+  // ── Elements ───────────────────────────────────────────────────────────────
+  const padToggle   = document.getElementById('pad-toggle');
+  const sliderRow   = document.getElementById('slider-row');
+  const padSlider   = document.getElementById('pad-slider');
+  const padVal      = document.getElementById('pad-val');
+  const dropZone    = document.getElementById('drop-zone');
+  const pickBtn     = document.getElementById('pick-btn');
+  const fileInput   = document.getElementById('file-input');
+  const processingCard = document.getElementById('processing-card');
+  const progressBar = document.getElementById('progress-bar');
+  const progressText = document.getElementById('progress-text');
+  const resultsCard = document.getElementById('results-card');
+  const resultsList = document.getElementById('results-list');
+  const resultsSummary = document.getElementById('results-summary');
+  const clearBtn    = document.getElementById('clear-btn');
+  const moreBtn     = document.getElementById('more-btn');
+  const iosHint     = document.getElementById('ios-hint');
+  const dropText    = document.getElementById('drop-text');
+  const dropSub     = document.getElementById('drop-sub');
+  const controlsCard = document.querySelector('.card');
+
+  // ── Toggle + Slider ────────────────────────────────────────────────────────
+  padToggle.addEventListener('change', () => {
+    sliderRow.style.display = padToggle.checked ? 'flex' : 'none';
+  });
+
+  padSlider.addEventListener('input', () => {
+    padVal.textContent = parseFloat(padSlider.value).toFixed(1) + '%';
+  });
+
+  // ── File picker ────────────────────────────────────────────────────────────
+  pickBtn.addEventListener('click', () => fileInput.click());
+  moreBtn.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files.length) processFiles(Array.from(fileInput.files));
+    fileInput.value = '';
+  });
+
+  // ── Drag and drop ──────────────────────────────────────────────────────────
+  document.addEventListener('dragover', e => e.preventDefault());
+  document.addEventListener('drop', e => e.preventDefault());
+
+  dropZone.addEventListener('dragenter', e => { e.preventDefault(); dropZone.classList.add('drag-over'); dropText.textContent = 'Release to add borders'; });
+  dropZone.addEventListener('dragover',  e => { e.preventDefault(); });
+  dropZone.addEventListener('dragleave', e => { if (!dropZone.contains(e.relatedTarget)) { dropZone.classList.remove('drag-over'); dropText.textContent = 'Drop photos here'; } });
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    dropText.textContent = 'Drop photos here';
+    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+    if (files.length) processFiles(files);
+  });
+
+  // ── Clear ──────────────────────────────────────────────────────────────────
+  clearBtn.addEventListener('click', () => {
+    results = [];
+    showState('idle');
+  });
+
+  // ── Core processing ────────────────────────────────────────────────────────
+  async function processFiles(files) {
+    showState('processing');
+    const paddingFraction = padToggle.checked ? parseFloat(padSlider.value) / 100 : 0;
+    const newResults = [];
+
+    for (let i = 0; i < files.length; i++) {
+      progressText.textContent = `Processing ${i + 1} of ${files.length}…`;
+      progressBar.style.width = ((i / files.length) * 100) + '%';
+      newResults.push(await processFile(files[i], paddingFraction));
+    }
+
+    progressBar.style.width = '100%';
+    results = newResults;
+    showState('results');
+  }
+
+  function processFile(file, paddingFraction) {
+    return new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image();
+        img.onload = () => {
+          const w = img.naturalWidth;
+          const h = img.naturalHeight;
+          const pad = Math.round(Math.max(w, h) * paddingFraction);
+          const side = Math.max(w, h) + 2 * pad;
+          const x = Math.round((side - w) / 2);
+          const y = Math.round((side - h) / 2);
+
+          const canvas = document.createElement('canvas');
+          canvas.width  = side;
+          canvas.height = side;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, side, side);
+          ctx.drawImage(img, x, y, w, h);
+
+          // Determine output MIME + extension
+          const srcType = file.type;
+          let mimeOut = 'image/jpeg';
+          let extOut  = 'jpg';
+          if (srcType === 'image/png')  { mimeOut = 'image/png';  extOut = 'png'; }
+          if (srcType === 'image/webp') { mimeOut = 'image/webp'; extOut = 'webp'; }
+          // HEIC/HEIF → re-encode as JPEG (canvas can't encode HEIC)
+
+          // Output filename: strip extension, add _square
+          const base = file.name.replace(/\.[^.]+$/, '');
+          const outName = base + '_square.' + extOut;
+
+          const quality = (mimeOut === 'image/png') ? undefined : 1.0;
+          canvas.toBlob(blob => {
+            if (!blob) { resolve({ ok: false, name: outName, msg: 'Encoding failed' }); return; }
+            const url = URL.createObjectURL(blob);
+            resolve({ ok: true, name: outName, url, mimeOut });
+          }, mimeOut, quality);
+        };
+        img.onerror = () => resolve({ ok: false, name: file.name, msg: 'Could not decode image' });
+        img.src = e.target.result;
+      };
+      reader.onerror = () => resolve({ ok: false, name: file.name, msg: 'Could not read file' });
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // ── UI state ───────────────────────────────────────────────────────────────
+  function showState(state) {
+    processingCard.classList.add('hidden');
+    resultsCard.classList.add('hidden');
+    iosHint.classList.add('hidden');
+
+    if (state === 'processing') {
+      progressBar.style.width = '0%';
+      processingCard.classList.remove('hidden');
+      pickBtn.disabled = true;
+    } else if (state === 'results') {
+      pickBtn.disabled = false;
+      renderResults();
+      resultsCard.classList.remove('hidden');
+      if (isIOS) iosHint.classList.remove('hidden');
+    } else {
+      pickBtn.disabled = false;
+    }
+  }
+
+  function renderResults() {
+    const successes = results.filter(r => r.ok).length;
+    resultsSummary.textContent = successes === results.length
+      ? `${successes} photo${successes === 1 ? '' : 's'} ready`
+      : `${successes} of ${results.length} processed`;
+
+    resultsList.innerHTML = '';
+    for (const r of results) {
+      const row = document.createElement('div');
+      row.className = 'result-row';
+
+      const icon = document.createElement('span');
+      icon.className = 'result-icon ' + (r.ok ? 'ok' : 'err');
+      icon.textContent = r.ok ? '✓' : '✕';
+
+      const info = document.createElement('div');
+      info.className = 'result-info';
+      const nameEl = document.createElement('div');
+      nameEl.className = 'name';
+      nameEl.textContent = r.name;
+      info.appendChild(nameEl);
+      if (!r.ok) {
+        const msgEl = document.createElement('div');
+        msgEl.className = 'msg';
+        msgEl.textContent = r.msg;
+        info.appendChild(msgEl);
+      }
+
+      row.appendChild(icon);
+      row.appendChild(info);
+
+      if (r.ok) {
+        const dl = document.createElement('a');
+        dl.className = 'dl-btn';
+        dl.href = r.url;
+        dl.download = r.name;
+        dl.textContent = 'Save';
+        row.appendChild(dl);
+      }
+
+      resultsList.appendChild(row);
+    }
+  }
+</script>
+</body>
+</html>
