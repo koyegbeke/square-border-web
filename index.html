@@ -255,6 +255,25 @@
       padding: 2px 0;
     }
 
+    .save-all-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: calc(100% - 32px);
+      margin: 0 16px 14px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 13px 20px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .save-all-btn:active { opacity: 0.75; }
+
     .result-row {
       display: flex;
       align-items: center;
@@ -377,6 +396,10 @@
       <button class="clear-btn" id="clear-btn">Clear</button>
     </div>
     <div id="results-list"></div>
+    <button class="save-all-btn hidden" id="save-all-btn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Save All
+    </button>
     <button class="more-btn" id="more-btn">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
       Select More Photos
@@ -407,6 +430,7 @@
   const resultsSummary = document.getElementById('results-summary');
   const clearBtn    = document.getElementById('clear-btn');
   const moreBtn     = document.getElementById('more-btn');
+  const saveAllBtn  = document.getElementById('save-all-btn');
   const iosHint     = document.getElementById('ios-hint');
   const dropText    = document.getElementById('drop-text');
   const dropSub     = document.getElementById('drop-sub');
@@ -448,6 +472,21 @@
   clearBtn.addEventListener('click', () => {
     results = [];
     showState('idle');
+  });
+
+  // ── Save All ───────────────────────────────────────────────────────────────
+  saveAllBtn.addEventListener('click', () => {
+    const successes = results.filter(r => r.ok);
+    successes.forEach((r, i) => {
+      setTimeout(() => {
+        const a = document.createElement('a');
+        a.href = r.url;
+        a.download = r.name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }, i * 200); // small stagger so the browser doesn't block them
+    });
   });
 
   // ── Core processing ────────────────────────────────────────────────────────
@@ -540,6 +579,15 @@
     resultsSummary.textContent = successes === results.length
       ? `${successes} photo${successes === 1 ? '' : 's'} ready`
       : `${successes} of ${results.length} processed`;
+
+    // Show "Save All" only when there are 2+ successful results and not on iOS
+    if (successes >= 2 && !isIOS) {
+      saveAllBtn.classList.remove('hidden');
+      saveAllBtn.textContent = '';
+      saveAllBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Save All ${successes} Photos`;
+    } else {
+      saveAllBtn.classList.add('hidden');
+    }
 
     resultsList.innerHTML = '';
     for (const r of results) {
